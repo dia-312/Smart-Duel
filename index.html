@@ -5,95 +5,76 @@
 <title>Smart Duel</title>
 
 <style>
-body {
-  background:#f2f4f8;
-  font-family:Arial;
+/* ===== LIGHT THEME واضح ===== */
+body{
+  background:#eef2f7;
+  color:#222;
+  font-family:Arial, sans-serif;
   text-align:center;
-  color:#333;
 }
 
-h1 {
-  color:#2c3e50;
-}
+h1{color:#1f2937}
 
-.arena {
+.arena{
   display:flex;
   justify-content:space-around;
   margin-top:30px;
 }
 
-.player {
+.player{
   width:40%;
-  background:white;
+  background:#ffffff;
   padding:20px;
-  border-radius:15px;
-  box-shadow:0 10px 25px rgba(0,0,0,0.1);
+  border-radius:18px;
+  box-shadow:0 12px 30px rgba(0,0,0,0.12);
   position:relative;
 }
 
-.hp {
+.hp{
   font-size:22px;
-  margin:10px 0;
+  font-weight:bold;
 }
 
-.action {
-  font-size:28px;
+.action{
+  font-size:26px;
   height:40px;
+  margin:8px 0;
 }
 
-.controls {
+.controls{
   font-size:14px;
-  margin-top:10px;
-  color:#555;
+  color:#444;
   text-align:left;
 }
 
-.fx {
+.fx{
   position:absolute;
   top:45%;
   left:50%;
   transform:translate(-50%,0);
-  font-size:48px;
+  font-size:46px;
   opacity:0.6;
   animation:float 1s forwards;
 }
 
-@keyframes float {
-  from {opacity:0.7; transform:translate(-50%,0);}
-  to {opacity:0; transform:translate(-50%,-60px);}
+@keyframes float{
+  from{opacity:0.7; transform:translate(-50%,0);}
+  to{opacity:0; transform:translate(-50%,-70px);}
 }
 
-.attackAnim { animation:attack 0.4s; }
-.defendAnim { animation:defend 0.4s; }
-.specialAnim { animation:special 0.6s; }
+.attackAnim{animation:attack .35s}
+.defendAnim{animation:defend .35s}
+.specialAnim{animation:special .5s}
 
-@keyframes attack {
-  50% { transform:translateX(15px); }
-}
+@keyframes attack{50%{transform:translateX(18px)}}
+@keyframes defend{50%{box-shadow:0 0 22px #3b82f6}}
+@keyframes special{50%{box-shadow:0 0 38px #9333ea}}
 
-@keyframes defend {
-  50% { box-shadow:0 0 20px #3498db; }
-}
-
-@keyframes special {
-  50% { box-shadow:0 0 35px #9b59b6; }
-}
-
-.log {
-  margin:25px auto;
-  width:80%;
-  background:white;
-  padding:10px;
-  height:120px;
-  overflow:auto;
-  border-radius:10px;
-  box-shadow:0 5px 15px rgba(0,0,0,0.1);
-}
-
-.winner {
-  font-size:26px;
-  color:#27ae60;
-  margin-top:20px;
+#winner{
+  margin-top:25px;
+  font-size:28px;
+  font-weight:bold;
+  color:#16a34a;
 }
 </style>
 </head>
@@ -129,35 +110,34 @@ h1 {
   </div>
 </div>
 
-<div class="winner" id="winner"></div>
-<div class="log" id="log"></div>
+<div id="winner"></div>
 
 <script>
-let gameOver = false;
+let gameOver=false;
 
-let players = {
+const players={
   1:{hp:100,def:false,special:true,choice:null},
   2:{hp:100,def:false,special:true,choice:null}
 };
 
-const icons = {
+const icons={
   safe:"🟢 هجوم ضعيف",
   risky:"🔴 هجوم قوي",
   defend:"🛡️ دفاع",
   special:"⭐ حركة خاصة"
 };
 
-document.addEventListener("keydown", e => {
+document.addEventListener("keydown",e=>{
   if(gameOver) return;
 
   e.preventDefault();
-  const key = e.key.toLowerCase();
+  const k=e.key.toLowerCase();
 
   if(!players[1].choice){
-    if(key==="w") choose(1,"safe");
-    if(key==="a") choose(1,"risky");
-    if(key==="s") choose(1,"defend");
-    if(key==="d") choose(1,"special");
+    if(k==="w") choose(1,"safe");
+    if(k==="a") choose(1,"risky");
+    if(k==="s") choose(1,"defend");
+    if(k==="d") choose(1,"special");
   }
 
   if(!players[2].choice){
@@ -168,49 +148,58 @@ document.addEventListener("keydown", e => {
   }
 
   if(players[1].choice && players[2].choice){
-    setTimeout(resolveTurn,500);
+    setTimeout(resolveTurn,400);
   }
 });
 
 function choose(p,act){
   if(players[p].choice) return;
   if(act==="special" && !players[p].special) return;
-
-  players[p].choice = act;
-  document.getElementById("a"+p).innerText = "✅";
+  players[p].choice=act;
+  document.getElementById("a"+p).innerText="✅";
 }
 
 function resolveTurn(){
   reveal();
   setTimeout(()=>{
     execute(1,2);
+    if(checkWinner()) return;
+
     execute(2,1);
-    updateHP();
-    checkWinner();
+    if(checkWinner()) return;
+
     resetTurn();
-  },800);
+  },700);
 }
 
 function reveal(){
-  a1.innerText = icons[players[1].choice];
-  a2.innerText = icons[players[2].choice];
+  a1.innerText=icons[players[1].choice];
+  a2.innerText=icons[players[2].choice];
 }
 
 function execute(p,e){
-  let act = players[p].choice;
-  let dmg = 0;
-  let el = document.getElementById("p"+p);
+  let act=players[p].choice;
+  let dmg=0;
+  let el=document.getElementById("p"+p);
 
-  if(act==="safe") dmg=10;
-  if(act==="risky" && Math.random()<0.5) dmg=30;
-  if(act==="defend") players[p].def=true;
-  if(act==="special"){ dmg=40; players[p].special=false; }
+  if(act==="safe"){dmg=10; el.classList.add("attackAnim");}
+  if(act==="risky" && Math.random()<0.5){dmg=30; el.classList.add("attackAnim");}
+  if(act==="defend"){players[p].def=true; el.classList.add("defendAnim");}
+  if(act==="special"){dmg=40; players[p].special=false; el.classList.add("specialAnim");}
 
   if(dmg>0){
-    if(players[e].def){ dmg/=2; players[e].def=false; }
-    players[e].hp -= dmg;
+    if(players[e].def){dmg/=2; players[e].def=false;}
+    players[e].hp-=dmg;
     fx(e,act);
+    updateHP();
   }
+
+  setTimeout(()=>el.className="player",400);
+}
+
+function updateHP(){
+  hp1.innerText="HP: "+Math.max(players[1].hp,0);
+  hp2.innerText="HP: "+Math.max(players[2].hp,0);
 }
 
 function fx(p,act){
@@ -221,27 +210,21 @@ function fx(p,act){
   setTimeout(()=>d.remove(),1000);
 }
 
-function updateHP(){
-  hp1.innerText="HP: "+Math.max(players[1].hp,0);
-  hp2.innerText="HP: "+Math.max(players[2].hp,0);
-}
-
 function checkWinner(){
   if(players[1].hp<=0 || players[2].hp<=0){
     gameOver=true;
-    let win = players[1].hp<=0 ? "Player 2" : "Player 1";
-    document.getElementById("winner").innerText = "🏆 " + win + " فاز!";
+    let win=players[1].hp<=0?"Player 2":"Player 1";
+    document.getElementById("winner").innerText="🏆 "+win+" فاز!";
+    return true;
   }
+  return false;
 }
 
 function resetTurn(){
-  if(gameOver) return;
   players[1].choice=null;
   players[2].choice=null;
-  setTimeout(()=>{
-    a1.innerText="❔";
-    a2.innerText="❔";
-  },600);
+  a1.innerText="❔";
+  a2.innerText="❔";
 }
 </script>
 
