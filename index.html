@@ -6,25 +6,29 @@
 
 <style>
 body {
-  background:#0e0e0e;
-  color:white;
+  background:#f2f4f8;
   font-family:Arial;
   text-align:center;
+  color:#333;
+}
+
+h1 {
+  color:#2c3e50;
 }
 
 .arena {
   display:flex;
   justify-content:space-around;
-  margin-top:25px;
+  margin-top:30px;
 }
 
 .player {
   width:40%;
+  background:white;
   padding:20px;
-  background:#1c1c1c;
   border-radius:15px;
+  box-shadow:0 10px 25px rgba(0,0,0,0.1);
   position:relative;
-  transition:0.3s;
 }
 
 .hp {
@@ -39,24 +43,23 @@ body {
 
 .controls {
   font-size:14px;
-  opacity:0.85;
   margin-top:10px;
+  color:#555;
   text-align:left;
 }
 
 .fx {
   position:absolute;
-  top:40%;
+  top:45%;
   left:50%;
   transform:translate(-50%,0);
   font-size:48px;
-  opacity:0.7;
-  animation:float 1s ease-out forwards;
-  pointer-events:none;
+  opacity:0.6;
+  animation:float 1s forwards;
 }
 
 @keyframes float {
-  from {opacity:0.8; transform:translate(-50%,0);}
+  from {opacity:0.7; transform:translate(-50%,0);}
   to {opacity:0; transform:translate(-50%,-60px);}
 }
 
@@ -65,28 +68,32 @@ body {
 .specialAnim { animation:special 0.6s; }
 
 @keyframes attack {
-  0%{transform:translateX(0)}
-  50%{transform:translateX(20px)}
-  100%{transform:translateX(0)}
+  50% { transform:translateX(15px); }
 }
+
 @keyframes defend {
-  0%{box-shadow:0 0 0 blue}
-  50%{box-shadow:0 0 25px blue}
-  100%{box-shadow:0 0 0 blue}
+  50% { box-shadow:0 0 20px #3498db; }
 }
+
 @keyframes special {
-  0%{box-shadow:0 0 0 purple}
-  50%{box-shadow:0 0 40px purple}
-  100%{box-shadow:0 0 0 purple}
+  50% { box-shadow:0 0 35px #9b59b6; }
 }
 
 .log {
-  margin-top:20px;
-  background:black;
+  margin:25px auto;
+  width:80%;
+  background:white;
   padding:10px;
   height:120px;
   overflow:auto;
   border-radius:10px;
+  box-shadow:0 5px 15px rgba(0,0,0,0.1);
+}
+
+.winner {
+  font-size:26px;
+  color:#27ae60;
+  margin-top:20px;
 }
 </style>
 </head>
@@ -94,9 +101,9 @@ body {
 <body>
 
 <h1>⚔️ Smart Duel ⚔️</h1>
+<p>Player 1: WASD | Player 2: ⬆⬅⬇➡</p>
 
 <div class="arena">
-
   <div class="player" id="p1">
     <h2>Player 1</h2>
     <div class="hp" id="hp1">HP: 100</div>
@@ -120,44 +127,57 @@ body {
       → – حركة خاصة ⭐
     </div>
   </div>
-
 </div>
 
+<div class="winner" id="winner"></div>
 <div class="log" id="log"></div>
 
 <script>
-let players={
+let gameOver = false;
+
+let players = {
   1:{hp:100,def:false,special:true,choice:null},
   2:{hp:100,def:false,special:true,choice:null}
 };
 
-const icons={
+const icons = {
   safe:"🟢 هجوم ضعيف",
   risky:"🔴 هجوم قوي",
   defend:"🛡️ دفاع",
   special:"⭐ حركة خاصة"
 };
 
-document.addEventListener("keydown",e=>{
-  if(players[1].choice && players[2].choice) return;
+document.addEventListener("keydown", e => {
+  if(gameOver) return;
 
-  if(e.key==="w") choose(1,"safe");
-  if(e.key==="a") choose(1,"risky");
-  if(e.key==="s") choose(1,"defend");
-  if(e.key==="d") choose(1,"special");
+  e.preventDefault();
+  const key = e.key.toLowerCase();
 
-  if(e.key==="ArrowUp") choose(2,"safe");
-  if(e.key==="ArrowLeft") choose(2,"risky");
-  if(e.key==="ArrowDown") choose(2,"defend");
-  if(e.key==="ArrowRight") choose(2,"special");
+  if(!players[1].choice){
+    if(key==="w") choose(1,"safe");
+    if(key==="a") choose(1,"risky");
+    if(key==="s") choose(1,"defend");
+    if(key==="d") choose(1,"special");
+  }
+
+  if(!players[2].choice){
+    if(e.key==="ArrowUp") choose(2,"safe");
+    if(e.key==="ArrowLeft") choose(2,"risky");
+    if(e.key==="ArrowDown") choose(2,"defend");
+    if(e.key==="ArrowRight") choose(2,"special");
+  }
+
+  if(players[1].choice && players[2].choice){
+    setTimeout(resolveTurn,500);
+  }
 });
 
 function choose(p,act){
   if(players[p].choice) return;
   if(act==="special" && !players[p].special) return;
 
-  players[p].choice=act;
-  document.getElementById("a"+p).innerText="✅";
+  players[p].choice = act;
+  document.getElementById("a"+p).innerText = "✅";
 }
 
 function resolveTurn(){
@@ -166,19 +186,20 @@ function resolveTurn(){
     execute(1,2);
     execute(2,1);
     updateHP();
+    checkWinner();
     resetTurn();
-  },1000);
+  },800);
 }
 
 function reveal(){
-  a1.innerText=icons[players[1].choice];
-  a2.innerText=icons[players[2].choice];
+  a1.innerText = icons[players[1].choice];
+  a2.innerText = icons[players[2].choice];
 }
 
 function execute(p,e){
-  let act=players[p].choice;
-  let dmg=0;
-  let el=document.getElementById("p"+p);
+  let act = players[p].choice;
+  let dmg = 0;
+  let el = document.getElementById("p"+p);
 
   if(act==="safe") dmg=10;
   if(act==="risky" && Math.random()<0.5) dmg=30;
@@ -187,17 +208,17 @@ function execute(p,e){
 
   if(dmg>0){
     if(players[e].def){ dmg/=2; players[e].def=false; }
-    players[e].hp-=dmg;
+    players[e].hp -= dmg;
     fx(e,act);
   }
 }
 
 function fx(p,act){
-  let div=document.createElement("div");
-  div.className="fx";
-  div.innerText=icons[act].split(" ")[0];
-  document.getElementById("p"+p).appendChild(div);
-  setTimeout(()=>div.remove(),1000);
+  let d=document.createElement("div");
+  d.className="fx";
+  d.innerText=icons[act][0];
+  document.getElementById("p"+p).appendChild(d);
+  setTimeout(()=>d.remove(),1000);
 }
 
 function updateHP(){
@@ -205,21 +226,22 @@ function updateHP(){
   hp2.innerText="HP: "+Math.max(players[2].hp,0);
 }
 
+function checkWinner(){
+  if(players[1].hp<=0 || players[2].hp<=0){
+    gameOver=true;
+    let win = players[1].hp<=0 ? "Player 2" : "Player 1";
+    document.getElementById("winner").innerText = "🏆 " + win + " فاز!";
+  }
+}
+
 function resetTurn(){
+  if(gameOver) return;
   players[1].choice=null;
   players[2].choice=null;
   setTimeout(()=>{
     a1.innerText="❔";
     a2.innerText="❔";
-  },1000);
-}
-
-setInterval(()=>{
-  if(players[1].choice && players[2].choice) resolveTurn();
-},200);
-
-function log(t){
-  log.innerHTML+=t+"<br>";
+  },600);
 }
 </script>
 
