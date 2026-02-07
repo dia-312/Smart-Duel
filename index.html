@@ -6,7 +6,7 @@
 
 <style>
 body {
-  background:#0f0f0f;
+  background:#0e0e0e;
   color:white;
   font-family:Arial;
   text-align:center;
@@ -15,14 +15,15 @@ body {
 .arena {
   display:flex;
   justify-content:space-around;
-  margin-top:30px;
+  margin-top:25px;
 }
 
 .player {
   width:40%;
   padding:20px;
   background:#1c1c1c;
-  border-radius:12px;
+  border-radius:15px;
+  position:relative;
   transition:0.3s;
 }
 
@@ -32,50 +33,59 @@ body {
 }
 
 .action {
-  font-size:40px;
-  height:60px;
+  font-size:28px;
+  height:40px;
 }
 
-.chosen {
-  opacity:0.6;
+.controls {
+  font-size:14px;
+  opacity:0.85;
+  margin-top:10px;
+  text-align:left;
 }
 
-.attackAnim {
-  animation:attack 0.4s;
+.fx {
+  position:absolute;
+  top:40%;
+  left:50%;
+  transform:translate(-50%,0);
+  font-size:48px;
+  opacity:0.7;
+  animation:float 1s ease-out forwards;
+  pointer-events:none;
 }
 
-.defendAnim {
-  animation:defend 0.4s;
+@keyframes float {
+  from {opacity:0.8; transform:translate(-50%,0);}
+  to {opacity:0; transform:translate(-50%,-60px);}
 }
 
-.specialAnim {
-  animation:special 0.6s;
-}
+.attackAnim { animation:attack 0.4s; }
+.defendAnim { animation:defend 0.4s; }
+.specialAnim { animation:special 0.6s; }
 
 @keyframes attack {
   0%{transform:translateX(0)}
   50%{transform:translateX(20px)}
   100%{transform:translateX(0)}
 }
-
 @keyframes defend {
-  0%{box-shadow:0 0 0px blue}
+  0%{box-shadow:0 0 0 blue}
   50%{box-shadow:0 0 25px blue}
-  100%{box-shadow:0 0 0px}
+  100%{box-shadow:0 0 0 blue}
 }
-
 @keyframes special {
-  0%{box-shadow:0 0 0px purple}
+  0%{box-shadow:0 0 0 purple}
   50%{box-shadow:0 0 40px purple}
-  100%{box-shadow:0 0 0px}
+  100%{box-shadow:0 0 0 purple}
 }
 
 .log {
-  margin-top:25px;
-  height:120px;
-  overflow:auto;
+  margin-top:20px;
   background:black;
   padding:10px;
+  height:120px;
+  overflow:auto;
   border-radius:10px;
 }
 </style>
@@ -84,20 +94,33 @@ body {
 <body>
 
 <h1>⚔️ Smart Duel ⚔️</h1>
-<p>Player 1: WASD | Player 2: ⬆⬅⬇➡</p>
 
 <div class="arena">
+
   <div class="player" id="p1">
     <h2>Player 1</h2>
     <div class="hp" id="hp1">HP: 100</div>
     <div class="action" id="a1">❔</div>
+    <div class="controls">
+      W – هجوم ضعيف 🟢<br>
+      A – هجوم قوي 🔴<br>
+      S – دفاع 🛡️<br>
+      D – حركة خاصة ⭐
+    </div>
   </div>
 
   <div class="player" id="p2">
     <h2>Player 2</h2>
     <div class="hp" id="hp2">HP: 100</div>
     <div class="action" id="a2">❔</div>
+    <div class="controls">
+      ↑ – هجوم ضعيف 🟢<br>
+      ← – هجوم قوي 🔴<br>
+      ↓ – دفاع 🛡️<br>
+      → – حركة خاصة ⭐
+    </div>
   </div>
+
 </div>
 
 <div class="log" id="log"></div>
@@ -108,49 +131,48 @@ let players={
   2:{hp:100,def:false,special:true,choice:null}
 };
 
+const icons={
+  safe:"🟢 هجوم ضعيف",
+  risky:"🔴 هجوم قوي",
+  defend:"🛡️ دفاع",
+  special:"⭐ حركة خاصة"
+};
+
 document.addEventListener("keydown",e=>{
   if(players[1].choice && players[2].choice) return;
 
-  switch(e.key){
-    case "w": choose(1,"safe"); break;
-    case "a": choose(1,"risky"); break;
-    case "s": choose(1,"defend"); break;
-    case "d": choose(1,"special"); break;
+  if(e.key==="w") choose(1,"safe");
+  if(e.key==="a") choose(1,"risky");
+  if(e.key==="s") choose(1,"defend");
+  if(e.key==="d") choose(1,"special");
 
-    case "ArrowUp": choose(2,"safe"); break;
-    case "ArrowLeft": choose(2,"risky"); break;
-    case "ArrowDown": choose(2,"defend"); break;
-    case "ArrowRight": choose(2,"special"); break;
-  }
+  if(e.key==="ArrowUp") choose(2,"safe");
+  if(e.key==="ArrowLeft") choose(2,"risky");
+  if(e.key==="ArrowDown") choose(2,"defend");
+  if(e.key==="ArrowRight") choose(2,"special");
 });
 
-function choose(p,action){
+function choose(p,act){
   if(players[p].choice) return;
-  if(action==="special" && !players[p].special) return;
+  if(act==="special" && !players[p].special) return;
 
-  players[p].choice=action;
+  players[p].choice=act;
   document.getElementById("a"+p).innerText="✅";
-  log(`Player ${p} اختار حركته`);
-
-  if(players[1].choice && players[2].choice)
-    setTimeout(resolveTurn,600);
 }
 
 function resolveTurn(){
-  execute(1,2);
-  execute(2,1);
+  reveal();
+  setTimeout(()=>{
+    execute(1,2);
+    execute(2,1);
+    updateHP();
+    resetTurn();
+  },1000);
+}
 
-  updateHP();
-
-  if(players[1].hp<=0 || players[2].hp<=0){
-    log("🏆 اللعبة انتهت");
-    return;
-  }
-
-  players[1].choice=null;
-  players[2].choice=null;
-  document.getElementById("a1").innerText="❔";
-  document.getElementById("a2").innerText="❔";
+function reveal(){
+  a1.innerText=icons[players[1].choice];
+  a2.innerText=icons[players[2].choice];
 }
 
 function execute(p,e){
@@ -158,21 +180,24 @@ function execute(p,e){
   let dmg=0;
   let el=document.getElementById("p"+p);
 
-  if(act==="safe"){dmg=10; el.classList.add("attackAnim");}
-  if(act==="risky" && Math.random()<0.5){dmg=30; el.classList.add("attackAnim");}
-  if(act==="defend"){players[p].def=true; el.classList.add("defendAnim");}
-  if(act==="special"){
-    dmg=40;
-    players[p].special=false;
-    el.classList.add("specialAnim");
-  }
+  if(act==="safe") dmg=10;
+  if(act==="risky" && Math.random()<0.5) dmg=30;
+  if(act==="defend") players[p].def=true;
+  if(act==="special"){ dmg=40; players[p].special=false; }
 
   if(dmg>0){
-    if(players[e].def){dmg/=2; players[e].def=false;}
+    if(players[e].def){ dmg/=2; players[e].def=false; }
     players[e].hp-=dmg;
+    fx(e,act);
   }
+}
 
-  setTimeout(()=>el.className="player",500);
+function fx(p,act){
+  let div=document.createElement("div");
+  div.className="fx";
+  div.innerText=icons[act].split(" ")[0];
+  document.getElementById("p"+p).appendChild(div);
+  setTimeout(()=>div.remove(),1000);
 }
 
 function updateHP(){
@@ -180,10 +205,21 @@ function updateHP(){
   hp2.innerText="HP: "+Math.max(players[2].hp,0);
 }
 
+function resetTurn(){
+  players[1].choice=null;
+  players[2].choice=null;
+  setTimeout(()=>{
+    a1.innerText="❔";
+    a2.innerText="❔";
+  },1000);
+}
+
+setInterval(()=>{
+  if(players[1].choice && players[2].choice) resolveTurn();
+},200);
+
 function log(t){
-  let l=document.getElementById("log");
-  l.innerHTML+=t+"<br>";
-  l.scrollTop=l.scrollHeight;
+  log.innerHTML+=t+"<br>";
 }
 </script>
 
