@@ -1,186 +1,190 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Smart Duel</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background: #111;
-      color: #fff;
-      text-align: center;
-      padding: 20px;
-    }
+<meta charset="UTF-8">
+<title>Smart Duel</title>
 
-    h1 {
-      color: #f39c12;
-    }
+<style>
+body {
+  background:#0f0f0f;
+  color:white;
+  font-family:Arial;
+  text-align:center;
+}
 
-    .arena {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 30px;
-    }
+.arena {
+  display:flex;
+  justify-content:space-around;
+  margin-top:30px;
+}
 
-    .player {
-      width: 40%;
-      background: #222;
-      padding: 20px;
-      border-radius: 10px;
-    }
+.player {
+  width:40%;
+  padding:20px;
+  background:#1c1c1c;
+  border-radius:12px;
+  transition:0.3s;
+}
 
-    .hp {
-      font-size: 20px;
-      margin-bottom: 15px;
-    }
+.hp {
+  font-size:22px;
+  margin:10px 0;
+}
 
-    button {
-      display: block;
-      width: 100%;
-      margin: 8px 0;
-      padding: 10px;
-      font-size: 16px;
-      cursor: pointer;
-      border: none;
-      border-radius: 5px;
-    }
+.action {
+  font-size:40px;
+  height:60px;
+}
 
-    .attack { background: #27ae60; }
-    .risky { background: #c0392b; }
-    .defend { background: #2980b9; }
-    .special { background: #8e44ad; }
+.chosen {
+  opacity:0.6;
+}
 
-    button:disabled {
-      background: #555;
-      cursor: not-allowed;
-    }
+.attackAnim {
+  animation:attack 0.4s;
+}
 
-    .log {
-      margin-top: 30px;
-      background: #000;
-      padding: 15px;
-      height: 150px;
-      overflow-y: auto;
-      border-radius: 10px;
-      font-size: 14px;
-    }
+.defendAnim {
+  animation:defend 0.4s;
+}
 
-    .turn {
-      margin-top: 20px;
-      font-size: 18px;
-      color: #1abc9c;
-    }
-  </style>
+.specialAnim {
+  animation:special 0.6s;
+}
+
+@keyframes attack {
+  0%{transform:translateX(0)}
+  50%{transform:translateX(20px)}
+  100%{transform:translateX(0)}
+}
+
+@keyframes defend {
+  0%{box-shadow:0 0 0px blue}
+  50%{box-shadow:0 0 25px blue}
+  100%{box-shadow:0 0 0px}
+}
+
+@keyframes special {
+  0%{box-shadow:0 0 0px purple}
+  50%{box-shadow:0 0 40px purple}
+  100%{box-shadow:0 0 0px}
+}
+
+.log {
+  margin-top:25px;
+  height:120px;
+  overflow:auto;
+  background:black;
+  padding:10px;
+  border-radius:10px;
+}
+</style>
 </head>
+
 <body>
 
-  <h1>⚔️ Smart Duel ⚔️</h1>
-  <div class="turn" id="turnText"></div>
+<h1>⚔️ Smart Duel ⚔️</h1>
+<p>Player 1: WASD | Player 2: ⬆⬅⬇➡</p>
 
-  <div class="arena">
-    <div class="player">
-      <h2>Player 1</h2>
-      <div class="hp" id="hp1">HP: 100</div>
-      <button class="attack" onclick="play(1, 'safe')">هجوم ضعيف</button>
-      <button class="risky" onclick="play(1, 'risky')">هجوم قوي</button>
-      <button class="defend" onclick="play(1, 'defend')">دفاع</button>
-      <button class="special" id="sp1" onclick="play(1, 'special')">حركة خاصة</button>
-    </div>
-
-    <div class="player">
-      <h2>Player 2</h2>
-      <div class="hp" id="hp2">HP: 100</div>
-      <button class="attack" onclick="play(2, 'safe')">هجوم ضعيف</button>
-      <button class="risky" onclick="play(2, 'risky')">هجوم قوي</button>
-      <button class="defend" onclick="play(2, 'defend')">دفاع</button>
-      <button class="special" id="sp2" onclick="play(2, 'special')">حركة خاصة</button>
-    </div>
+<div class="arena">
+  <div class="player" id="p1">
+    <h2>Player 1</h2>
+    <div class="hp" id="hp1">HP: 100</div>
+    <div class="action" id="a1">❔</div>
   </div>
 
-  <div class="log" id="log"></div>
+  <div class="player" id="p2">
+    <h2>Player 2</h2>
+    <div class="hp" id="hp2">HP: 100</div>
+    <div class="action" id="a2">❔</div>
+  </div>
+</div>
+
+<div class="log" id="log"></div>
 
 <script>
-  let players = {
-    1: { hp: 100, defend: false, special: true },
-    2: { hp: 100, defend: false, special: true }
-  };
+let players={
+  1:{hp:100,def:false,special:true,choice:null},
+  2:{hp:100,def:false,special:true,choice:null}
+};
 
-  let currentPlayer = 1;
-  let gameOver = false;
+document.addEventListener("keydown",e=>{
+  if(players[1].choice && players[2].choice) return;
 
-  updateTurn();
+  switch(e.key){
+    case "w": choose(1,"safe"); break;
+    case "a": choose(1,"risky"); break;
+    case "s": choose(1,"defend"); break;
+    case "d": choose(1,"special"); break;
 
-  function play(player, action) {
-    if (player !== currentPlayer || gameOver) return;
+    case "ArrowUp": choose(2,"safe"); break;
+    case "ArrowLeft": choose(2,"risky"); break;
+    case "ArrowDown": choose(2,"defend"); break;
+    case "ArrowRight": choose(2,"special"); break;
+  }
+});
 
-    let enemy = player === 1 ? 2 : 1;
-    let damage = 0;
-    let text = `Player ${player}: `;
+function choose(p,action){
+  if(players[p].choice) return;
+  if(action==="special" && !players[p].special) return;
 
-    if (action === 'safe') {
-      damage = 10;
-      text += "هجوم ضعيف";
-    }
+  players[p].choice=action;
+  document.getElementById("a"+p).innerText="✅";
+  log(`Player ${p} اختار حركته`);
 
-    if (action === 'risky') {
-      if (Math.random() < 0.5) {
-        damage = 30;
-        text += "هجوم قوي ونجح!";
-      } else {
-        text += "هجوم قوي وفشل!";
-      }
-    }
+  if(players[1].choice && players[2].choice)
+    setTimeout(resolveTurn,600);
+}
 
-    if (action === 'defend') {
-      players[player].defend = true;
-      text += "دفاع";
-    }
+function resolveTurn(){
+  execute(1,2);
+  execute(2,1);
 
-    if (action === 'special') {
-      if (!players[player].special) return;
-      damage = 40;
-      players[player].special = false;
-      document.getElementById("sp" + player).disabled = true;
-      text += "الحركة الخاصة!";
-    }
+  updateHP();
 
-    if (damage > 0) {
-      if (players[enemy].defend) {
-        damage = Math.floor(damage / 2);
-        players[enemy].defend = false;
-        text += " (الخصم دافع)";
-      }
-      players[enemy].hp -= damage;
-    }
-
-    log(text);
-    updateHP();
-
-    if (players[enemy].hp <= 0) {
-      log(`🏆 Player ${player} فاز!`);
-      gameOver = true;
-      return;
-    }
-
-    currentPlayer = enemy;
-    updateTurn();
+  if(players[1].hp<=0 || players[2].hp<=0){
+    log("🏆 اللعبة انتهت");
+    return;
   }
 
-  function updateHP() {
-    document.getElementById("hp1").innerText = "HP: " + Math.max(players[1].hp, 0);
-    document.getElementById("hp2").innerText = "HP: " + Math.max(players[2].hp, 0);
+  players[1].choice=null;
+  players[2].choice=null;
+  document.getElementById("a1").innerText="❔";
+  document.getElementById("a2").innerText="❔";
+}
+
+function execute(p,e){
+  let act=players[p].choice;
+  let dmg=0;
+  let el=document.getElementById("p"+p);
+
+  if(act==="safe"){dmg=10; el.classList.add("attackAnim");}
+  if(act==="risky" && Math.random()<0.5){dmg=30; el.classList.add("attackAnim");}
+  if(act==="defend"){players[p].def=true; el.classList.add("defendAnim");}
+  if(act==="special"){
+    dmg=40;
+    players[p].special=false;
+    el.classList.add("specialAnim");
   }
 
-  function log(text) {
-    let div = document.getElementById("log");
-    div.innerHTML += text + "<br>";
-    div.scrollTop = div.scrollHeight;
+  if(dmg>0){
+    if(players[e].def){dmg/=2; players[e].def=false;}
+    players[e].hp-=dmg;
   }
 
-  function updateTurn() {
-    document.getElementById("turnText").innerText =
-      "الدور الحالي: Player " + currentPlayer;
-  }
+  setTimeout(()=>el.className="player",500);
+}
+
+function updateHP(){
+  hp1.innerText="HP: "+Math.max(players[1].hp,0);
+  hp2.innerText="HP: "+Math.max(players[2].hp,0);
+}
+
+function log(t){
+  let l=document.getElementById("log");
+  l.innerHTML+=t+"<br>";
+  l.scrollTop=l.scrollHeight;
+}
 </script>
 
 </body>
